@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; script-src 'self'; connect-src 'self'"
+    />
+    <title>设置 · DomeOS AI</title>
+    <!-- the settings window is a normal window: no transparent corners, but it still must not
+         grow past the viewport or the footer would leave the frame -->
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      #settings-root {
+        height: 100vh;
+        max-height: 100vh;
+        overflow: hidden;
+      }
+      #settings-root > * {
+        height: 100%;
+        max-height: 100%;
+        overflow: hidden;
+      }
+    </style>
+    <script type="module" crossorigin src="./assets/settings-tbvuuGZO.js"></script>
+    <!-- double-clicking inside the About page opens the Chrome-dino easter egg -->
+    <script type="module" crossorigin src="./assets/dome-dino.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/modulepreload-polyfill-B5Qt9EMX.js">
+    <link rel="modulepreload" crossorigin href="./assets/styles-Ck0_YRap.js">
+    <link rel="modulepreload" crossorigin href="./assets/logo-BRR-WM0a.js">
+    <link rel="stylesheet" crossorigin href="./assets/styles-Bo598JLz.css">
+  </head>
+  <body>
+    <div id="settings-root"></div>
+  </body>
+</html>
