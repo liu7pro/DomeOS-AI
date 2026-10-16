@@ -1,0 +1,393 @@
+/* DomeOS AI - FireflyOS glass material
+   CPU rules of this theme:
+   - every infinite animation is transform/opacity-only (GPU composited, ~0 CPU)
+   - no particle systems / JS-driven effects; ambience comes from static gradients
+     plus two slow compositor orbs and a 3px prism strip (the only small repaints)
+   - the Liquid Glass rim (bottom of this file) is a masked 1px pseudo-element, so the
+     refraction costs one thin paint per surface; the surface blur is opt-in per panel
+     and is the only backdrop-filter in the theme */
+
+html,body{height:100%;margin:0;padding:0;overflow:hidden}#root{height:100vh;max-height:100vh;overflow:hidden}
+body{font-family:'Microsoft YaHei','PingFang SC','Segoe UI',sans-serif}
+
+/* ---------------------------------------------------------------- palette */
+.app{
+  --dome-ease:cubic-bezier(.22,1,.36,1);
+  --dome-spring:cubic-bezier(.3,1.35,.5,1);
+  /* light - cool cloud white, classic blue accent */
+  --dome-bg:#eef4fb;
+  --dome-panel:rgba(255,255,255,.60);
+  --dome-panel2:rgba(255,255,255,.42);
+  --dome-panel-hi:rgba(255,255,255,.55);
+  --dome-line:rgba(15,23,42,.10);
+  --dome-line2:rgba(15,23,42,.17);
+  --dome-text:#0f172a;
+  --dome-text2:#475569;
+  --dome-text3:#94a3b8;
+  --dome-accent:#1f6fd0;
+  --dome-accent2:#2b7fd4;
+  --dome-fly:#b45309;
+  --dome-accent-g:rgba(74,144,226,.15);
+  --dome-fly-g:rgba(180,83,9,.12);
+  --dome-link:#1f6fd0;
+  --dome-code:rgba(15,23,42,.055);
+  --dome-scroll-thumb:rgba(15,23,42,.30);
+  --dome-scroll-thumb-hover:rgba(15,23,42,.48);
+  --dome-ub1:rgba(74,144,226,.17);
+  --dome-ub2:rgba(74,144,226,.06);
+  --dome-uborder:rgba(74,144,226,.32);
+  --dome-hl1:rgba(74,144,226,.40);
+  --dome-hl2:rgba(96,165,250,.28);
+  --dome-hl3:rgba(217,119,6,.22);
+  --dome-orbA:rgba(96,165,250,.18);
+  --dome-orbB:rgba(251,191,36,.13);
+  --dome-inset:inset 0 1px 0 rgba(255,255,255,.62);
+  --dome-line-top:rgba(255,255,255,.92);
+  --dome-shadow:0 8px 26px rgba(20,40,70,.10),0 2px 8px rgba(20,40,70,.06);
+  --dome-shadow-sm:0 4px 14px rgba(20,40,70,.08);
+  --win-btn-hover:rgba(15,23,42,.08);
+  color:var(--dome-text);
+}
+.app.dark{
+  --dome-bg:#080c14;
+  --dome-panel:rgba(16,24,36,.58);
+  --dome-panel2:rgba(16,24,36,.42);
+  --dome-panel-hi:rgba(255,255,255,.05);
+  --dome-line:rgba(255,255,255,.08);
+  --dome-line2:rgba(255,255,255,.15);
+  --dome-text:#f1f5f9;
+  --dome-text2:#94a3b8;
+  --dome-text3:#5b6b80;
+  --dome-accent:#7eb0e8;
+  --dome-accent2:#9cc3ee;
+  --dome-fly:#fbbf24;
+  --dome-accent-g:rgba(122,176,232,.14);
+  --dome-fly-g:rgba(251,191,36,.12);
+  --dome-link:#7eb0e8;
+  --dome-code:rgba(148,163,184,.13);
+  --dome-scroll-thumb:rgba(148,163,184,.38);
+  --dome-scroll-thumb-hover:rgba(148,163,184,.58);
+  --dome-ub1:rgba(122,176,232,.17);
+  --dome-ub2:rgba(122,176,232,.06);
+  --dome-uborder:rgba(122,176,232,.30);
+  --dome-hl1:rgba(122,176,232,.42);
+  --dome-hl2:rgba(96,165,250,.30);
+  --dome-hl3:rgba(251,191,36,.25);
+  --dome-orbA:rgba(96,165,250,.11);
+  --dome-orbB:rgba(251,191,36,.07);
+  --dome-inset:inset 0 1px 0 rgba(255,255,255,.09);
+  --dome-line-top:rgba(255,255,255,.17);
+  --dome-shadow:0 10px 30px rgba(0,0,0,.38),0 2px 8px rgba(0,0,0,.28);
+  --dome-shadow-sm:0 6px 18px rgba(0,0,0,.32);
+  --win-btn-hover:rgba(255,255,255,.09);
+}
+
+.app{display:flex;flex-direction:column;height:100vh;max-height:100vh;min-height:0;overflow:hidden;position:relative;
+  font-family:'Microsoft YaHei','PingFang SC','Segoe UI',sans-serif;
+  /* the element carries an inline background from the config colour builder; the
+     FireflyOS material takes over, while a user-set background image (the .bgImage
+     child) still paints above this, so that feature keeps working */
+  background-color:var(--dome-bg);
+  background-image:radial-gradient(640px 440px at 6% -8%,var(--dome-orbA),transparent 62%),
+    radial-gradient(560px 400px at 97% 8%,rgba(96,165,250,.10),transparent 60%),
+    radial-gradient(560px 460px at 52% 114%,var(--dome-orbB),transparent 64%)!important;
+  -webkit-font-smoothing:antialiased;transition:background-color .5s ease}
+.fui-FluentProvider{font-family:'Microsoft YaHei','PingFang SC','Segoe UI',sans-serif!important}
+/* two slow breathing orbs - transform-only, promoted to the compositor.
+   no blur() here on purpose: the gradients are already soft, and a paint-time
+   filter would make the GPU process re-raster and cost real CPU every frame */
+.app::before{content:'';position:absolute;width:480px;height:480px;left:-160px;top:-180px;border-radius:50%;
+  background:radial-gradient(circle,var(--dome-orbA) 0%,rgba(96,165,250,0) 68%);
+  pointer-events:none;z-index:0;will-change:transform;animation:domeOrbA 38s ease-in-out infinite}
+.app::after{content:'';position:absolute;width:420px;height:420px;right:-140px;bottom:-160px;border-radius:50%;
+  background:radial-gradient(circle,var(--dome-orbB) 0%,rgba(251,191,36,0) 68%);
+  pointer-events:none;z-index:0;will-change:transform;animation:domeOrbB 46s ease-in-out infinite}
+@keyframes domeOrbA{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(80px,60px,0) scale(1.14)}}
+@keyframes domeOrbB{0%,100%{transform:translate3d(0,0,0) scale(1.1)}50%{transform:translate3d(-70px,-50px,0) scale(.95)}}
+/* real content always paints above the ambient layers */
+.app>*:not(.bgImage){position:relative;z-index:1}
+
+/* ------------------------------------------------------------- chrome */
+.brandStrip{height:3px;flex:0 0 3px;width:100%;transition:none;position:relative;overflow:hidden}
+.brandStrip::before{content:'';position:absolute;top:0;bottom:0;left:0;width:55%;pointer-events:none;
+  background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.55) 50%,transparent 70%);
+  will-change:transform;animation:domeSheen 7s var(--dome-ease) infinite}
+@keyframes domeSheen{0%{transform:translate3d(-110%,0,0)}55%{transform:translate3d(300%,0,0)}100%{transform:translate3d(300%,0,0)}}
+.titleBar{-webkit-app-region:drag;display:flex;align-items:center;gap:8px;padding:7px 6px 5px 12px;flex:0 0 auto}
+.titleBar button,.titleBar input,.titleBar .noDrag{-webkit-app-region:no-drag}
+.logoMark{width:26px;height:26px;flex:0 0 auto;animation:domeBob 4.6s ease-in-out infinite;will-change:transform}
+@keyframes domeBob{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-2px) rotate(2.5deg)}}
+.brandText{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+.brandName{font-size:16px;font-weight:600;background:linear-gradient(135deg,var(--dome-text) 30%,var(--dome-accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.brandTag{font-size:11px;opacity:.72}
+.spacer{flex:1 1 auto}
+
+.infoCard{display:flex;align-items:center;gap:10px;margin:0 12px 6px;padding:5px 10px;border-radius:14px;flex:0 0 auto;
+  border:1px solid var(--dome-line);border-top-color:var(--dome-line-top);background-color:var(--dome-panel);
+  background-image:linear-gradient(180deg,var(--dome-panel-hi),transparent 70%);
+  box-shadow:var(--dome-shadow-sm),var(--dome-inset);position:relative;
+  transition:transform .3s var(--dome-ease),box-shadow .3s var(--dome-ease),border-color .3s var(--dome-ease)}
+.infoCard::after{content:'';position:absolute;top:0;left:12%;right:12%;height:1px;border-radius:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,var(--dome-hl1),var(--dome-hl3),transparent)}
+.infoCard:hover{transform:translateY(-2px);border-color:var(--dome-line2);box-shadow:var(--dome-shadow),var(--dome-inset)}
+.statusDot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+
+/* --------------------------------------------------------- keyframes */
+@keyframes domeRise{0%{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes domeSlideIn{0%{opacity:0;transform:translate(14px)}to{opacity:1;transform:translate(0)}}
+@keyframes domeShimmer{0%{background-position:150% 50%}to{background-position:-150% 50%}}
+@keyframes domePop{0%{opacity:0;transform:translateY(-6px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes domePulseDot{0%,to{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
+@keyframes domeSaved{0%{opacity:0;transform:translateY(6px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+.savedPill{display:inline-flex;align-items:center;gap:7px;animation:domeSaved .3s var(--dome-ease)}
+
+/* --------------------------------------------------------- scrollbars */
+*{scrollbar-width:thin;scrollbar-color:var(--dome-scroll-thumb,rgba(128,140,160,.45)) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background-color:var(--dome-scroll-thumb,rgba(128,140,160,.45));border-radius:6px;border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background-color:var(--dome-scroll-thumb-hover,rgba(128,140,160,.7))}
+::-webkit-scrollbar-corner{background:transparent}
+
+::selection{background:var(--dome-accent-g)}
+.sidebarPane{background:var(--dome-sidebar,transparent);background-image:linear-gradient(90deg,var(--dome-panel-hi),transparent 72%);border-right:1px solid var(--dome-line)}
+
+/* --------------------------------------------------------- transcript */
+.body code{background:var(--dome-code,rgba(128,140,160,.17))}
+.body pre{background:var(--dome-code,rgba(128,140,160,.13))}
+.transcript{flex:1 1 0;min-height:0;overflow-y:auto;overflow-x:hidden;padding:8px 14px 14px;display:flex;flex-direction:column;gap:10px;user-select:text}
+.notice{align-self:center;max-width:88%;text-align:center;font-size:12.5px;line-height:1.6;opacity:.78;white-space:pre-wrap}
+.row{display:flex;width:100%}
+.row.user{justify-content:flex-end}
+.row.ai{justify-content:flex-start}
+
+/* glass bubbles; the ai bubble carries the FireflyOS prism hairline on top.
+   .transcript raises the specificity above the runtime-injected Griffel classes
+   (they set backgroundColor/border on .bubble ai/user/error and would win a tie) */
+.bubble{max-width:100%;border-radius:16px;padding:10px 14px;display:flex;flex-direction:column;gap:6px;position:relative}
+.transcript .bubble{border:1px solid var(--dome-line);border-top-color:var(--dome-line-top);background-color:var(--dome-panel);
+  background-image:linear-gradient(180deg,var(--dome-panel-hi),transparent 45%);
+  box-shadow:var(--dome-shadow),var(--dome-inset)}
+.transcript .bubble.ai::before{content:'';position:absolute;top:0;left:12%;right:12%;height:1px;border-radius:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,var(--dome-hl1),var(--dome-hl2),var(--dome-hl3),transparent)}
+.transcript .bubble.user{max-width:78%;border-color:var(--dome-uborder);color:var(--dome-text);
+  background-color:transparent;background-image:linear-gradient(165deg,var(--dome-ub1),var(--dome-ub2))}
+.transcript .bubble.error{border:1px solid rgba(248,113,113,.42);
+  background-color:transparent;background-image:linear-gradient(165deg,rgba(248,113,113,.10),rgba(248,113,113,.04))}
+.speaker{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;opacity:.75}
+.bubble.user .speaker{opacity:.9}
+.bubble.ai .speaker{color:var(--dome-accent);opacity:.92}
+.bubble.user .speaker{color:var(--dome-fly)}
+
+.body{font-size:14px;line-height:1.62;word-break:break-word;white-space:pre-wrap}
+.body p{margin:0 0 8px}.body p:last-child{margin-bottom:0}
+.body h1{font-size:18px;margin:10px 0 6px}.body h2{font-size:16px;margin:10px 0 6px}.body h3{font-size:14.5px;margin:8px 0 4px}
+.body ul{margin:4px 0 8px;padding-left:22px}.body li{margin:2px 0}
+.body code{font-family:Consolas,Cascadia Mono,monospace;font-size:12.8px;padding:1px 5px;border-radius:4px}
+.body pre{margin:8px 0;padding:10px 12px;border-radius:10px;overflow-x:auto;font-family:Consolas,Cascadia Mono,monospace;font-size:12.8px;white-space:pre;border:1px solid var(--dome-line)}
+.body blockquote{margin:6px 0;padding-left:10px;border-left:3px solid var(--dome-accent);opacity:.85}
+.body a{color:var(--dome-link)}
+.body hr{border:none;border-top:1px solid currentColor;opacity:.18;margin:10px 0}
+.cursor:after{content:"▍";animation:blink 1s steps(2,start) infinite;opacity:.8}
+@keyframes blink{to{visibility:hidden}}
+
+/* ---------------------------------------------------------- composer */
+.composer{flex:0 0 88px;height:88px;padding:6px 12px 4px;display:flex;gap:10px;align-items:flex-end;box-sizing:border-box}
+.composerBox{flex:1 1 auto}
+.composer textarea{height:74px!important;border-radius:16px!important;
+  background-color:var(--dome-panel)!important;
+  background-image:linear-gradient(180deg,var(--dome-panel-hi),transparent 60%)!important;
+  border:1px solid var(--dome-line2)!important;border-top-color:var(--dome-line-top)!important;
+  box-shadow:var(--dome-shadow-sm),var(--dome-inset)!important;
+  transition:border-color .3s var(--dome-ease),box-shadow .3s var(--dome-ease)!important}
+.composer textarea:focus{outline:none;border-color:var(--dome-accent)!important;
+  box-shadow:0 0 0 3px var(--dome-accent-g),var(--dome-shadow-sm),var(--dome-inset)!important}
+.composer textarea::placeholder{color:var(--dome-text2)!important;opacity:.85!important}
+.composerActions{display:flex;flex-direction:column;gap:6px}
+.composerActions button{transition:transform .22s var(--dome-ease),box-shadow .22s var(--dome-ease)}
+.composerActions button:hover{transform:translateY(-1px)}
+.composerActions button:active{transform:scale(.94)}
+
+.hintBar{flex:0 0 22px;height:22px;padding:0 14px;display:flex;align-items:center;gap:13px;font-size:11px;line-height:22px;opacity:.72;overflow:hidden}
+.bgImage{position:absolute;inset:0;z-index:0;pointer-events:none;background-position:center;background-repeat:no-repeat;overflow:hidden}
+.bgVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none}
+
+/* ------------------------------------------------- settings surfaces */
+.sectionTitle{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dome-accent);margin:14px 0 8px;display:flex;align-items:center;gap:8px}
+.sectionTitle::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--dome-line2),transparent)}
+.field{display:flex;flex-direction:column;gap:3px;margin-bottom:9px}
+.fieldRow{display:flex;gap:12px;align-items:flex-end}
+.fieldRow>*{flex:1 1 0}
+.hotkeyBox{font-family:Consolas,monospace;text-align:center;cursor:pointer;border:1px dashed var(--dome-line2);border-radius:10px;transition:border-color .25s var(--dome-ease),box-shadow .25s var(--dome-ease)}
+.hotkeyBox:hover{border-color:var(--dome-accent);box-shadow:0 0 0 3px var(--dome-accent-g)}
+.swatch{width:34px;height:34px;border-radius:10px;border:1.5px solid var(--dome-line2);cursor:pointer;transition:transform .25s var(--dome-ease),box-shadow .25s var(--dome-ease)}
+.swatch:hover{transform:scale(1.1)}
+.swatch:hover{box-shadow:0 0 0 3px var(--dome-accent-g)}
+
+/* -------------------------------------------------- entrances (one-shot) */
+.transcript>*{animation:domeRise .42s var(--dome-spring) backwards}
+.transcript>*:nth-child(1){animation-delay:.01s}
+.transcript>*:nth-child(2){animation-delay:.05s}
+.transcript>*:nth-child(3){animation-delay:.09s}
+.transcript>*:nth-child(4){animation-delay:.13s}
+.transcript>*:nth-child(5){animation-delay:.17s}
+.transcript>*:nth-child(n+6){animation-delay:.2s}
+.infoCard{animation:domeRise .36s var(--dome-spring) backwards}
+.threadRow,.wsCard,.composer,.hintBar{animation:domeRise .38s var(--dome-spring) backwards}
+.threadRow,.wsCard{transition:transform .28s var(--dome-ease)}
+.threadRow:hover{transform:translateX(3px)}
+.wsCard:hover{transform:translateY(-2px)}
+.composer{animation-delay:.05s}
+.hintBar{animation-delay:.1s}
+@media (prefers-reduced-motion: reduce){
+  .transcript>*,.infoCard,.wsCard,.threadRow,.composer,.hintBar,.app::before,.app::after,.brandStrip,.logoMark,.savedPill{animation:none!important}
+  .threadRow:hover,.wsCard:hover,.infoCard:hover,.composerActions button:hover{transform:none!important}
+}
+
+.composerBar{flex:0 0 26px;height:26px;padding:0 12px;display:flex;align-items:center;overflow:hidden;box-sizing:border-box}
+.composerBar>*{min-width:0;height:26px;align-items:center}
+.mediaRow{flex:0 0 26px;height:26px;display:flex;align-items:center;overflow:hidden}
+
+/* -------------------------------------------------- expandable input */
+.composer.domeFsOpen{flex:1 1 55%;height:auto;min-height:190px;align-items:stretch}
+.composer.domeFsOpen .composerBox{display:flex;flex-direction:column;min-height:0}
+.composer.domeFsOpen textarea{height:auto!important;flex:1 1 auto;min-height:0;resize:none}
+.composer.domeFsOpen .composerActions{justify-content:flex-end}
+.domeSplit{flex:0 0 auto;height:9px;margin:0 10px;cursor:row-resize;position:relative}
+.domeSplit::after{content:"";position:absolute;left:0;right:0;top:4px;height:1px;background:var(--dome-line2);transition:background .2s}
+.domeSplit:hover::after{background:var(--dome-accent)}
+
+/* ----------------------------------------------------- attachments */
+.domeAttachStrip{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:8px;padding:6px 12px 0;animation:domeRise .3s var(--dome-spring)}
+.domeAttachChip{position:relative;display:flex;align-items:center;max-width:220px;height:52px;padding:0 24px 0 10px;border-radius:12px;border:1px solid var(--dome-line2);border-top-color:var(--dome-line-top);background:var(--dome-panel2);box-shadow:var(--dome-inset);box-sizing:border-box}
+.domeAttachChipImg{width:64px;height:64px;padding:0;overflow:hidden}
+.domeAttachThumb{width:100%;height:100%;object-fit:cover;display:block}
+.domeAttachBody{display:flex;align-items:center;gap:8px;min-width:0}
+.domeAttachIcon{flex:0 0 auto;opacity:.75;color:var(--dome-accent)}
+.domeAttachText{display:flex;flex-direction:column;min-width:0;line-height:1.3}
+.domeAttachName{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+.domeAttachMeta{font-size:11px;opacity:.6}
+.domeAttachX{position:absolute;top:3px;right:3px;width:18px;height:18px;padding:0;border:none;border-radius:50%;cursor:pointer;font-size:13px;line-height:18px;color:#fff;background:rgba(18,22,32,.6);display:flex;align-items:center;justify-content:center;transition:background .2s,transform .2s var(--dome-ease)}
+.domeAttachX:hover{background:rgba(18,22,32,.88);transform:scale(1.1)}
+.composer.domeDrop{outline:2px dashed var(--dome-link);outline-offset:-6px;border-radius:18px}
+.domeMsgAtts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.row.ai .domeMsgAtts{justify-content:flex-start}
+.domeMsgImg{display:block;max-width:240px;max-height:240px;border-radius:12px;border:1px solid var(--dome-line2);box-shadow:var(--dome-shadow-sm)}
+.domeMsgFile{display:flex;align-items:center;gap:8px;max-width:240px;padding:5px 10px;border-radius:10px;border:1px solid var(--dome-line2);border-top-color:var(--dome-line-top);background:var(--dome-panel2);box-shadow:var(--dome-inset);font-size:12px}
+.domeMsgFileName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.domeMsgFileMeta{opacity:.6;flex:0 0 auto}
+
+/* ===================================================== Liquid Glass rim refraction
+   Liquid Glass bends light where the glass ends and nowhere else. The rim is a
+   masked 1px ring carrying a prism gradient, blurred just enough to read as a lens
+   edge rather than a drawn stroke, so the boundary refracts while the fill and the
+   text inside stay perfectly undistorted. */
+:root{
+  --dome-rim1:rgba(255,255,255,.90);
+  --dome-rim2:rgba(74,144,226,.62);
+  --dome-rim3:rgba(217,119,6,.34);
+  --dome-rim-w:1.25px;
+  --dome-glass-blur:11px;
+}
+.app.dark{
+  --dome-rim1:rgba(255,255,255,.40);
+  --dome-rim2:rgba(126,176,232,.50);
+  --dome-rim3:rgba(251,191,36,.26);
+}
+.transcript .bubble,.infoCard,.domeAttachChip,.domeMsgFile,.threadRow,.wsCard{position:relative}
+.transcript .bubble::after,.infoCard::before,.domeAttachChip::before,.domeMsgFile::before,.threadRow::before,.wsCard::before{
+  content:'';position:absolute;inset:0;border-radius:inherit;padding:var(--dome-rim-w);pointer-events:none;z-index:2;
+  background:linear-gradient(135deg,var(--dome-rim1) 0%,var(--dome-rim2) 34%,var(--dome-rim3) 58%,var(--dome-rim1) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask-composite:exclude;
+  filter:blur(.45px);opacity:.92;
+  transition:opacity .4s var(--dome-ease)}
+.infoCard:hover::before,.threadRow:hover::before,.wsCard:hover::before,.transcript .bubble:hover::after{opacity:1}
+
+/* the smooth half of Liquid Glass: the panel itself is blurred so text stays legible
+   over any background. This is the theme's only backdrop-filter, and it is what makes
+   the surface feel like glass instead of a flat translucent fill. */
+@supports ((backdrop-filter:blur(2px)) or (-webkit-backdrop-filter:blur(2px))){
+  .transcript .bubble,.infoCard,.domeAttachChip,.domeMsgFile,.threadRow,.wsCard{
+    -webkit-backdrop-filter:blur(var(--dome-glass-blur)) saturate(1.14);
+    backdrop-filter:blur(var(--dome-glass-blur)) saturate(1.14)}
+  .composer textarea{
+    -webkit-backdrop-filter:blur(var(--dome-glass-blur)) saturate(1.14)!important;
+    backdrop-filter:blur(var(--dome-glass-blur)) saturate(1.14)!important}
+}
+@media (prefers-reduced-motion: reduce){
+  .transcript .bubble::after,.infoCard::before,.domeAttachChip::before,.domeMsgFile::before,.threadRow::before,.wsCard::before{transition:none}
+}
+
+/* ------------------------------------------- settings sheet (inside the window)
+   The settings app is hosted in an iframe that fills everything below the title bar, so
+   it navigates in place instead of opening a second window. */
+.domeSettingsSheet{position:absolute;left:0;right:0;bottom:0;top:41px;z-index:40;overflow:hidden;
+  border-top:1px solid var(--dome-line-top);border-radius:16px 16px 0 0;background-color:var(--dome-panel);
+  box-shadow:var(--dome-shadow);animation:domePop .3s var(--dome-ease)}
+.domeSettingsSheet iframe{width:100%;height:100%;border:0;display:block;background:transparent}
+@media (prefers-reduced-motion: reduce){.domeSettingsSheet{animation:none}}
+
+/* ============================================== QQNT-style presets and ornaments
+   Six built-in themes, each an accent family over the same glass, and five flat
+   ornaments (纹饰). An ornament is a single static gradient layer painted under the
+   ambience, so displaying one costs nothing. */
+:root{
+  --dome-ambient:radial-gradient(640px 440px at 6% -8%,var(--dome-orbA),transparent 62%),
+    radial-gradient(560px 400px at 97% 8%,rgba(96,165,250,.10),transparent 60%),
+    radial-gradient(560px 460px at 52% 114%,var(--dome-orbB),transparent 64%);
+}
+.app{--dome-orn:rgba(15,23,42,.05)}
+.app.dark{--dome-orn:rgba(255,255,255,.05)}
+
+/* classic blue - the default, kept explicit so a preset switch can always come back */
+.app[data-preset]{--dome-accent:#1f6fd0;--dome-accent2:#2b7fd4;--dome-accent-g:rgba(74,144,226,.15);
+  --dome-hl1:rgba(74,144,226,.40);--dome-hl2:rgba(96,165,250,.28);
+  --dome-ub1:rgba(74,144,226,.17);--dome-uborder:rgba(74,144,226,.32);--dome-rim2:rgba(74,144,226,.62)}
+.app.dark[data-preset]{--dome-accent:#7eb0e8;--dome-accent2:#9cc3ee;--dome-accent-g:rgba(122,176,232,.14);
+  --dome-hl1:rgba(122,176,232,.42);--dome-hl2:rgba(96,165,250,.30);
+  --dome-ub1:rgba(122,176,232,.17);--dome-uborder:rgba(122,176,232,.30);--dome-rim2:rgba(126,176,232,.50)}
+
+.app[data-preset="jade"]{--dome-accent:#0f9d76;--dome-accent2:#12b886;--dome-accent-g:rgba(18,184,134,.16);
+  --dome-hl1:rgba(18,184,134,.40);--dome-hl2:rgba(52,211,153,.28);
+  --dome-ub1:rgba(18,184,134,.17);--dome-uborder:rgba(18,184,134,.32);--dome-rim2:rgba(18,184,134,.58)}
+.app.dark[data-preset="jade"]{--dome-accent:#4fd1a5;--dome-accent2:#7ee0bb;--dome-accent-g:rgba(79,209,165,.15);
+  --dome-hl1:rgba(79,209,165,.42);--dome-hl2:rgba(52,211,153,.30);
+  --dome-ub1:rgba(79,209,165,.17);--dome-uborder:rgba(79,209,165,.30);--dome-rim2:rgba(79,209,165,.48)}
+
+.app[data-preset="violet"]{--dome-accent:#6d4ae2;--dome-accent2:#7c5cff;--dome-accent-g:rgba(124,92,255,.16);
+  --dome-hl1:rgba(124,92,255,.40);--dome-hl2:rgba(167,139,250,.28);
+  --dome-ub1:rgba(124,92,255,.17);--dome-uborder:rgba(124,92,255,.33);--dome-rim2:rgba(124,92,255,.58)}
+.app.dark[data-preset="violet"]{--dome-accent:#a48cff;--dome-accent2:#c4b5fd;--dome-accent-g:rgba(164,140,255,.16);
+  --dome-hl1:rgba(164,140,255,.44);--dome-hl2:rgba(167,139,250,.30);
+  --dome-ub1:rgba(164,140,255,.17);--dome-uborder:rgba(164,140,255,.30);--dome-rim2:rgba(164,140,255,.50)}
+
+.app[data-preset="sakura"]{--dome-accent:#d8497c;--dome-accent2:#e86a9b;--dome-accent-g:rgba(232,106,155,.16);
+  --dome-hl1:rgba(232,106,155,.40);--dome-hl2:rgba(249,168,212,.30);
+  --dome-ub1:rgba(232,106,155,.17);--dome-uborder:rgba(232,106,155,.33);--dome-rim2:rgba(232,106,155,.58)}
+.app.dark[data-preset="sakura"]{--dome-accent:#f09cbb;--dome-accent2:#fbcfe8;--dome-accent-g:rgba(240,156,187,.16);
+  --dome-hl1:rgba(240,156,187,.44);--dome-hl2:rgba(249,168,212,.32);
+  --dome-ub1:rgba(240,156,187,.17);--dome-uborder:rgba(240,156,187,.30);--dome-rim2:rgba(240,156,187,.50)}
+
+.app[data-preset="amber"]{--dome-accent:#c2761b;--dome-accent2:#d98324;--dome-accent-g:rgba(217,131,36,.16);
+  --dome-hl1:rgba(217,131,36,.40);--dome-hl2:rgba(251,191,36,.30);
+  --dome-ub1:rgba(217,131,36,.17);--dome-uborder:rgba(217,131,36,.33);--dome-rim2:rgba(217,131,36,.58)}
+.app.dark[data-preset="amber"]{--dome-accent:#f0b04c;--dome-accent2:#fbbf24;--dome-accent-g:rgba(240,176,76,.16);
+  --dome-hl1:rgba(240,176,76,.44);--dome-hl2:rgba(251,191,36,.32);
+  --dome-ub1:rgba(240,176,76,.17);--dome-uborder:rgba(240,176,76,.30);--dome-rim2:rgba(240,176,76,.50)}
+
+.app[data-preset="mono"]{--dome-accent:#475569;--dome-accent2:#64748b;--dome-accent-g:rgba(100,116,139,.16);
+  --dome-hl1:rgba(100,116,139,.40);--dome-hl2:rgba(148,163,184,.28);
+  --dome-ub1:rgba(100,116,139,.17);--dome-uborder:rgba(100,116,139,.34);--dome-rim2:rgba(100,116,139,.56)}
+.app.dark[data-preset="mono"]{--dome-accent:#a3b1c6;--dome-accent2:#cbd5e1;--dome-accent-g:rgba(163,177,198,.16);
+  --dome-hl1:rgba(163,177,198,.44);--dome-hl2:rgba(148,163,184,.30);
+  --dome-ub1:rgba(163,177,198,.17);--dome-uborder:rgba(163,177,198,.30);--dome-rim2:rgba(163,177,198,.50)}
+
+.app[data-ornament="grid"]{background-image:radial-gradient(circle,var(--dome-orn) 1px,transparent 1.3px) 0 0/20px 20px,var(--dome-ambient)!important}
+.app[data-ornament="diag"]{background-image:repeating-linear-gradient(45deg,var(--dome-orn) 0 1px,transparent 1px 13px),var(--dome-ambient)!important}
+.app[data-ornament="wave"]{background-image:repeating-linear-gradient(115deg,var(--dome-orn) 0 2px,transparent 2px 15px),
+  repeating-linear-gradient(25deg,var(--dome-orn) 0 1px,transparent 1px 19px),var(--dome-ambient)!important}
+.app[data-ornament="diamond"]{background-image:repeating-linear-gradient(45deg,var(--dome-orn) 0 1px,transparent 1px 17px),
+  repeating-linear-gradient(-45deg,var(--dome-orn) 0 1px,transparent 1px 17px),var(--dome-ambient)!important}

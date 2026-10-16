@@ -1,0 +1,1 @@
+import{c as e}from"./styles-Ck0_YRap.js";const l=e("StopFilled","1em",["M4.5 3C3.67 3 3 3.67 3 4.5v11c0 .83.67 1.5 1.5 1.5h11c.83 0 1.5-.67 1.5-1.5v-11c0-.83-.67-1.5-1.5-1.5z"]),c=e("ErrorCircleFilled","1em",["M10 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16m0 10.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5M10 6a.5.5 0 0 0-.5.41v4.68a.5.5 0 0 0 1 0V6.41A.5.5 0 0 0 10 6"]);export{c as E,l as S};
